@@ -6,6 +6,11 @@ set_.  The search sections used a data set of this size, but performed
 then 2*N on values that were not).  These numbers were therefore multiplied
 by 4 in the charts, to represent the _number of searches_ performed.
 
+System Information:
+  This test run was on an iMac (late 2013) running Yosemite (10.10.5)
+  Processor: 2.9 GHz Intel Core i5
+  RAM:       8 GB 1600 MHz DDR3
+
 
 Setup Timing (build from static array):
          N-Size,          Vector,       HeapArray,       Multiset
