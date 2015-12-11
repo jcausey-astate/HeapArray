@@ -1,5 +1,5 @@
 # HeapArray
-An array (priority queue, actually) of $\sqrt{N}$ min-max heaps of increasing (odd) size.
+An array (priority queue, actually) of sqrt(N) min-max heaps of increasing (odd) size.
 
 ## Why?
 This is a C++ implementation of the data structure proposed by Andrei Alexandrescu in the [D-Language forums](http://forum.dlang.org/post/n3iakr$q2g$1@digitalmars.com).
