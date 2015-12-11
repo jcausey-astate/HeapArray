@@ -19,7 +19,7 @@ If you build the structure dynamically by inserting values, the cost is closer t
 <sup>[1]</sup>: Probably around O(m^(3/2)), as nicely explained by Timon Gehr [here](http://forum.dlang.org/post/n3qqkm$2c6t$1@digitalmars.com). 
 
 ### Search
-Search can be performed in (theoretically) $\mathrm{O}(\sqrt{n}))$ steps; empirical data supports this; see [chart here](https://plot.ly/~jcausey-astate/7/search-timing-vector-vs-heaparray-vs-multiset/) and [chart below](https://plot.ly/~jcausey-astate/10/heaparray-vs-multiset-search-times/).
+Search can be performed in (theoretically) O(sqrt(n)) steps; empirical data supports this; see [chart here](https://plot.ly/~jcausey-astate/7/search-timing-vector-vs-heaparray-vs-multiset/) and [chart below](https://plot.ly/~jcausey-astate/10/heaparray-vs-multiset-search-times/).
 <div>
     <a href="https://plot.ly/~jcausey-astate/10/" target="_blank" title="HeapArray VS multiset: Search Times" style="display: block; text-align: center;"><img src="https://plot.ly/~jcausey-astate/10.png" alt="HeapArray VS multiset: Search Times" style="max-width: 100%;width: 1620px;"  width="1620" onerror="this.onerror=null;this.src='https://plot.ly/404.png';" /></a>
     <script data-plotly="jcausey-astate:10"  src="https://plot.ly/embed.js" async></script>
