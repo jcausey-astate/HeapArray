@@ -505,9 +505,9 @@ int mm_heap_replace_at_index(int new_value, size_t index, int* heap_array, size_
         }
         else{
             if(has_parent(index) && heap_array[parent(index)] < new_value){
-                std::swap(heap_array[parent(index)], heap_array[index]);
+                bubble_up(heap_array, index);
             }
-            mmheap_sift_down_min(heap_array, index, count-1);
+            mmheap_sift_down(heap_array, index, count-1);
         }
     }
     else{
@@ -516,9 +516,9 @@ int mm_heap_replace_at_index(int new_value, size_t index, int* heap_array, size_
         }
         else{
             if(has_parent(index) && new_value < heap_array[parent(index)]){
-                std::swap(heap_array[parent(index)], heap_array[index]);
+                bubble_up(heap_array, index);
             }
-            mmheap_sift_down_max(heap_array, index, count-1);
+            mmheap_sift_down(heap_array, index, count-1);
         }
     }
     return old_value;
