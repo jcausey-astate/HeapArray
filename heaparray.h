@@ -40,24 +40,34 @@
 
 const size_t MIN_HEAPARRAY_ALLOCATION = 4;  // TODO: Make this more realistic (based on real cache sizes, etc)
 
+/**
+ * An array segmented into sqrt(N) min-max
+ * heaps of increasing size (based on odd numbers from 1...2*sqrt(N)).
+ * Inspired by the discussion begun by Andrei Alexandrescu here:
+ * http://forum.dlang.org/post/n3iakr$q2g$1@digitalmars.com
+ * @tparam  DataType    the type of data stored in the heap - must be
+ *                      DefaultConstructable, LessThanComparable, Swappable,
+ *                      CopyConstructable, and CopyAssignable
+ */
+template <typename DataType>
 class HeapArray{
 public:
     HeapArray() = default;
-    HeapArray(const HeapArray& rhs);
-    HeapArray(HeapArray&& rhs);
-    HeapArray& operator=(const HeapArray& rhs);
-    HeapArray& operator=(HeapArray&& rhs);
-    HeapArray(int reserve_size, bool allow_resize = true);
-    HeapArray(int* begin, int* end, int* physical_end=nullptr, bool allow_resize = true);
+    HeapArray(const HeapArray<DataType>& rhs);
+    HeapArray(HeapArray<DataType>&& rhs);
+    HeapArray<DataType>& operator=(const HeapArray<DataType>& rhs);
+    HeapArray<DataType>& operator=(HeapArray<DataType>&& rhs);
+    HeapArray(size_t reserve_size, bool allow_resize = true);
+    HeapArray(DataType* begin, DataType* end, DataType* physical_end=nullptr, bool allow_resize = true);
     ~HeapArray();
 
-    void                    insert(int value);
-    bool                    remove(int value);
-    int                     min()const;
-    int                     max()const;
-    std::pair<bool, size_t> find(int value)const;
-    bool                    contains(int value)const;
-    int                     operator[](size_t index)const;
+    void                    insert(DataType value);
+    bool                    remove(const DataType& value);
+    DataType                min()const;
+    DataType                max()const;
+    std::pair<bool, size_t> find(const DataType& value)const;
+    bool                    contains(const DataType& value)const;
+    DataType                operator[](size_t index)const;
     size_t                  size()const;
 
 protected:
@@ -65,21 +75,22 @@ protected:
     void                    _resize(size_t new_size, bool round_up = true);
     void                    _grow();
     size_t                  _final_partition()const;
-    size_t                  _find_partition(int value, bool for_insert=false)const;
+    size_t                  _find_partition(const DataType& value, bool for_insert=false)const;
     size_t                  _partition_start(size_t p)const;
     size_t                  _partition_end(size_t p)const;
     size_t                  _count_in_partition(size_t p)const;
     size_t                  _partition_size(size_t p)const;
     size_t                  _index_to_partition(size_t i)const;
-    std::pair<int,int>      _range_in_partition(size_t p)const;
-    int                     _max_in_partition(size_t p)const;
+    std::pair<DataType,DataType>
+                            _range_in_partition(size_t p)const;
+    DataType                _max_in_partition(size_t p)const;
     std::tuple<bool, size_t, size_t, size_t>
-                            _find(int value)const;
+                            _find(const DataType& value)const;
 
-    size_t  storage = 0;
-    size_t  count   = 0;
-    bool    fixed   = false;
-    int*    a       = nullptr;
+    size_t    storage = 0;
+    size_t    count   = 0;
+    bool      fixed   = false;
+    DataType* a       = nullptr;
 };
 
 /**
@@ -90,8 +101,9 @@ protected:
  * @param reserve_size number of elements to reserve for the HeapArray
  * @param allow_resize flag representing whether or not the HeapArray is allowed to dynamically resize
  */
-HeapArray::HeapArray(int reserve_size, bool allow_resize){
-    a       = new int[reserve_size];
+template <typename DataType>
+HeapArray<DataType>::HeapArray(size_t reserve_size, bool allow_resize){
+    a       = new DataType[reserve_size];
     storage = reserve_size;
     fixed   = !allow_resize;
 }
@@ -106,7 +118,8 @@ HeapArray::HeapArray(int reserve_size, bool allow_resize){
  * @param physical_end  pointer to the address following the physical end of the array (hints at initial size of the HeapArray)
  * @param allow_resize  flag representing whether or not the HeapArray is allowed to dynamically resize
  */
-HeapArray::HeapArray(int* begin, int* end, int* physical_end, bool allow_resize){                   // copy existing array (range) into the object
+template <typename DataType>
+HeapArray<DataType>::HeapArray(DataType* begin, DataType* end, DataType* physical_end, bool allow_resize){                   // copy existing array (range) into the object
     auto new_size = physical_end ? physical_end - begin : end - begin;
     _resize(new_size, allow_resize);                                                                // get space (rounds up only if resize is allowed)
     std::copy(begin, end, a);                                                                       // copy in the existing range of values
@@ -120,7 +133,8 @@ HeapArray::HeapArray(int* begin, int* end, int* physical_end, bool allow_resize)
  *
  * @param rhs the original HeapArray that will be copied into this new one
  */
-HeapArray::HeapArray(const HeapArray& rhs){
+template <typename DataType>
+HeapArray<DataType>::HeapArray(const HeapArray<DataType>& rhs){
     *this = rhs;
 }
 
@@ -130,7 +144,8 @@ HeapArray::HeapArray(const HeapArray& rhs){
  *
  * @param rhs the original HeapArray to move into the new one (rhs is left in an empty state)
  */
-HeapArray::HeapArray(HeapArray&& rhs){
+template <typename DataType>
+HeapArray<DataType>::HeapArray(HeapArray<DataType>&& rhs){
     *this = std::move(rhs);
 }
 
@@ -141,13 +156,14 @@ HeapArray::HeapArray(HeapArray&& rhs){
  * @param rhs the original HeapArray to copy into the left-hand operand
  * @return    a reference to the new copy
  */
-HeapArray& HeapArray::operator=(const HeapArray& rhs){
+template <typename DataType>
+HeapArray<DataType>& HeapArray<DataType>::operator=(const HeapArray<DataType>& rhs){
     if(this != &rhs){
         storage = rhs.storage;
         count   = rhs.count;
         fixed   = rhs.fixed;
         delete [] a;
-        a = new int[storage];
+        a = new DataType[storage];
         std::copy(rhs.a, rhs.a+count, a);
     }
     return *this;
@@ -161,7 +177,8 @@ HeapArray& HeapArray::operator=(const HeapArray& rhs){
  *            operation `rhs` is left in an empty state
  * @return    a reference to the left-hand operand (containing the moved data)
  */
-HeapArray& HeapArray::operator=(HeapArray&& rhs){
+template <typename DataType>
+HeapArray<DataType>& HeapArray<DataType>::operator=(HeapArray<DataType>&& rhs){
     if(this != &rhs){
         storage     = rhs.storage;
         count       = rhs.count;
@@ -178,7 +195,8 @@ HeapArray& HeapArray::operator=(HeapArray&& rhs){
 /**
  * Destroy the HeapArray; deallocates all memory associated with the data structure.
  */
-HeapArray::~HeapArray(){
+template <typename DataType>
+HeapArray<DataType>::~HeapArray(){
     delete [] a;
 }
 
@@ -186,7 +204,8 @@ HeapArray::~HeapArray(){
  * Get the logical size (number of elements) for the HeapArray
  * @return the current number of elements contained in the HeapArray
  */
-inline size_t HeapArray::size()const {
+template <typename DataType>
+inline size_t HeapArray<DataType>::size()const {
     return count;
 }
 
@@ -199,7 +218,8 @@ inline size_t HeapArray::size()const {
  * @throws std::out_of_range is thrown if `index` is beyond the end of the logical
  *         size of the HeapArray
  */
-int  HeapArray::operator[](size_t index)const{
+template <typename DataType>
+DataType  HeapArray<DataType>::operator[](size_t index)const{
     if(index >= count){
         throw std::out_of_range("Index out of range.");
     }
@@ -215,7 +235,8 @@ int  HeapArray::operator[](size_t index)const{
  * @param   value  the new value to insert
  * @throws  std::length_error  if the container is already full and isn't allowed to resize
  */
-void HeapArray::insert(int value){
+template <typename DataType>
+void HeapArray<DataType>::insert(DataType value){
     if(count == storage){                                                                           // if the container is full, resize
         if(fixed){                                                                                  // unless it is fixed size, in which
             throw std::length_error("Maximum size exceeded for fixed-size container.");             // case throw an exception
@@ -246,29 +267,30 @@ void HeapArray::insert(int value){
  * @param value  the value to remove
  * @return       true if `value` is removed, `false` otherwise
  */
-bool HeapArray::remove(int value){
+template <typename DataType>
+bool HeapArray<DataType>::remove(const DataType& value){
     bool removed  = false;
     auto find_res = _find(value);
     if(std::get<0>(find_res)){
         auto partition = std::get<2>(find_res);
         if(partition == _final_partition()){                                                        // if the delete happens to be in the final
             size_t p_count = _count_in_partition(partition);                                        // partition, no "ripple" is necessary,
-            heap_remove_at_index(                                                                // and the element can be trivially
+            heap_remove_at_index(                                                                   // and the element can be trivially
                 std::get<3>(find_res),                                                              // removed
                 a + _partition_start(partition), p_count);
         }
         else{                                                                                       // non-trivial ripple delete, starting from the end:
             size_t p_count = _count_in_partition(_final_partition());
-            auto ripple    = heap_remove_min(                                                    // ripple begins at right-most partition
+            auto ripple    = heap_remove_min(                                                       // ripple begins at right-most partition
                                 a + _partition_start(_final_partition()), p_count);
             for(auto p = _final_partition() - 1; p > partition; --p){
-                ripple = heap_replace_at_index(                                                  // ripples through intermediate partititions
+                ripple = heap_replace_at_index(                                                     // ripples through intermediate partititions
                     ripple,
                     0,
                     a + _partition_start(p),
                     _count_in_partition(p) );
             }
-            heap_replace_at_index(                                                               // and replaces the victim in the destination
+            heap_replace_at_index(                                                                  // and replaces the victim in the destination
                 ripple,
                 std::get<3>(find_res),
                 a + _partition_start(partition),
@@ -284,7 +306,8 @@ bool HeapArray::remove(int value){
  * Get the minimum value contained in the HeapArray
  * @return the minimum value in the container
  */
-int  HeapArray::min()const{
+template <typename DataType>
+DataType  HeapArray<DataType>::min()const{
     return a[0];                                                                                    // min is first element.
 }
 
@@ -292,7 +315,8 @@ int  HeapArray::min()const{
  * Get the maximum value contained in the HeapArray
  * @return the maximum value in the container
  */
-int  HeapArray::max()const{
+template <typename DataType>
+DataType  HeapArray<DataType>::max()const{
     return heap_max(a +                                                                          // max is maximum element in
         _partition_start(_final_partition()),                                                       // the final partition
         _count_in_partition(_final_partition()));                                                   // (mmheap can access it in O(1))
@@ -309,7 +333,8 @@ int  HeapArray::max()const{
  *               found (false otherwise) and the `second` attribute is the index
  *               at which `value` was located (only if it was found).
  */
-std::pair<bool, size_t>  HeapArray::find(int value)const{
+template <typename DataType>
+std::pair<bool, size_t>  HeapArray<DataType>::find(const DataType& value)const{
     auto t_res = _find(value);
     std::pair<bool, size_t> result{std::get<0>(t_res), std::get<1>(t_res)};
     return result;
@@ -321,17 +346,19 @@ std::pair<bool, size_t>  HeapArray::find(int value)const{
  * @param value  the value to search for
  * @return       true if `value` is found, false otherwise
  */
-bool HeapArray::contains(int value)const{
+template <typename DataType>
+bool HeapArray<DataType>::contains(const DataType& value)const{
     return count > 0 ? find(value).first : false;
 }
 
 /*
  * turns an arbitrary array of values into the appropriate list-of-contiguous-heaps structure
  */
-void HeapArray::_init_heaps(){
+template <typename DataType>
+void HeapArray<DataType>::_init_heaps(){
     std::sort(a, a+count);
     for(size_t p = 1; p <= _final_partition(); ++p){                                                // first partition is trivially a heap.
-        make_heap(a + _partition_start(p), _count_in_partition(p));                              // heapify the rest.
+        make_heap(a + _partition_start(p), _count_in_partition(p));                                 // heapify the rest.
     }
 }
 
@@ -341,7 +368,8 @@ void HeapArray::_init_heaps(){
  *     round_up  set to `true` to round size up to the next perfect square (default=true)
  *     throws    std::runtime_error if the HeapArray is set to "fixed" size mode
  */
-void HeapArray::_resize(size_t new_size, bool round_up){
+template <typename DataType>
+void HeapArray<DataType>::_resize(size_t new_size, bool round_up){
     if(fixed){
         throw std::runtime_error("Resize disabled for this array.");
     }
@@ -351,8 +379,8 @@ void HeapArray::_resize(size_t new_size, bool round_up){
             auto rt  = static_cast<size_t>(ceil(sqrt(new_size)));
             new_size = static_cast<size_t>(rt*rt);
         }
-        int* victim = a;
-        a           = new int[new_size];
+        DataType* victim = a;
+        a           = new DataType[new_size];
         if(victim){
             std::copy(victim, victim + std::min(count, new_size), a);                               // copy existing values (as many as will fit if sizing down)
         }
@@ -371,8 +399,9 @@ void HeapArray::_resize(size_t new_size, bool round_up){
  * by doubling the current physical allocation (rounded up to the next
  * perfect square).
  */
-void HeapArray::_grow(){
-    int  next_size = storage * 2;                                                                   // double (and then round to next perfect square)
+template <typename DataType>
+void HeapArray<DataType>::_grow(){
+    size_t  next_size = storage * 2;                                                                // double (and then round to next perfect square)
     if(next_size == 0){                                                                             // or set to a minimum size if the container is new
         next_size = MIN_HEAPARRAY_ALLOCATION;
     }
@@ -382,14 +411,16 @@ void HeapArray::_grow(){
 /*
  * Get the partition-index of the final partition in the HeapArray
  */
-inline size_t HeapArray::_final_partition()const{
+template <typename DataType>
+inline size_t HeapArray<DataType>::_final_partition()const{
     return count > 0 ? static_cast<size_t>(ceil(sqrt(count)) - 1) : 0;
 }
 
 /*
  * Get the size of the partition given by the partition-index `p`.
  */
-inline size_t HeapArray::_partition_size(size_t p)const{
+template <typename DataType>
+inline size_t HeapArray<DataType>::_partition_size(size_t p)const{
     return p * 2 + 1;
 }
 
@@ -397,7 +428,8 @@ inline size_t HeapArray::_partition_size(size_t p)const{
  * Get the array index of the first element contained in the partition whose
  * partition-index is `p`.
  */
-inline size_t HeapArray::_partition_start(size_t p)const{
+template <typename DataType>
+inline size_t HeapArray<DataType>::_partition_start(size_t p)const{
     return p * p;
 }
 
@@ -405,7 +437,8 @@ inline size_t HeapArray::_partition_start(size_t p)const{
  * Get the array index of the last element contained in the partition whose
  * partition-index is `p`.
  */
-inline size_t HeapArray::_partition_end(size_t p)const{
+template <typename DataType>
+inline size_t HeapArray<DataType>::_partition_end(size_t p)const{
     return p * p + p * 2;
 }
 
@@ -413,7 +446,8 @@ inline size_t HeapArray::_partition_end(size_t p)const{
  * Convert an array index to a partition-index (i.e. determine which partition
  * a particular array index falls within).
  */
-inline size_t HeapArray::_index_to_partition(size_t i)const{
+template <typename DataType>
+inline size_t HeapArray<DataType>::_index_to_partition(size_t i)const{
     return i > 0 ? static_cast<size_t>(floor(sqrt(i))) : 0;
 }
 
@@ -422,7 +456,8 @@ inline size_t HeapArray::_index_to_partition(size_t i)const{
  * partition-index is `p`.
  * NOTE:  All partitions except the final one are always completely full.
  */
-size_t HeapArray::_count_in_partition(size_t p)const{
+template <typename DataType>
+size_t HeapArray<DataType>::_count_in_partition(size_t p)const{
     auto c = _partition_size(p);                                                                    // prior partitions are always full.
     if(p >= _final_partition()){                                                                    // final partition may be less than full, find out:
         c = count - (p * p);                                                                        // number in whole structure - number in partitions prior to this one
@@ -434,17 +469,19 @@ size_t HeapArray::_count_in_partition(size_t p)const{
  * Get the minimum and maximum values contained in the partition whose
  * partition-index is `p`.
  */
-std::pair<int,int> HeapArray::_range_in_partition(size_t p)const{
+template <typename DataType>
+std::pair<DataType,DataType> HeapArray<DataType>::_range_in_partition(size_t p)const{
     auto start_index = _partition_start(p);
-    int  p_min       = a[start_index];
-    int  p_max       = heap_max(a+start_index, _count_in_partition(p));
-    return std::pair<int,int>{p_min, p_max};
+    auto p_min       = a[start_index];
+    auto p_max       = heap_max(a+start_index, _count_in_partition(p));
+    return std::pair<DataType,DataType>{p_min, p_max};
 }
 
 /*
  * Get the maximum value contained in the partition whose partition-index is `p`.
  */
-int HeapArray::_max_in_partition(size_t p)const{
+template <typename DataType>
+DataType HeapArray<DataType>::_max_in_partition(size_t p)const{
     auto start_index = _partition_start(p);
     return heap_max(a+start_index, _count_in_partition(p));
 }
@@ -461,7 +498,8 @@ int HeapArray::_max_in_partition(size_t p)const{
  *
  *     value    the value to find
  */
-std::tuple<bool, size_t, size_t, size_t> HeapArray::_find(int value)const{
+template <typename DataType>
+std::tuple<bool, size_t, size_t, size_t> HeapArray<DataType>::_find(const DataType& value)const{
     auto   p     = _find_partition(value);
     size_t index = 0;
     bool   found = false;
@@ -484,7 +522,8 @@ std::tuple<bool, size_t, size_t, size_t> HeapArray::_find(int value)const{
  *     for_insert   flag indicating whether this is a speculative search prior
  *                  to an insert.
  */
-size_t HeapArray::_find_partition(int value, bool for_insert)const{
+template <typename DataType>
+size_t HeapArray<DataType>::_find_partition(const DataType& value, bool for_insert)const{
     size_t p_index = 0;
     if(count > 0){
         size_t left     = 0;
@@ -494,17 +533,20 @@ size_t HeapArray::_find_partition(int value, bool for_insert)const{
             auto mid   = (left + right) / 2;
 
             auto range = _range_in_partition(mid);
-            if((range.first <= value && value <= range.second) ||                                   // value within range
+            if(((range.first < value || range.first == value)
+                && (value < range.second || value == range.second)) ||                              // value within range
                 (for_insert &&                                                                      // or, if we are inserting
-                    ((mid > 0  && value <= range.second && _max_in_partition(mid-1) <= value)       //     follows previous partition
-                     || (mid == 0 && value <= range.second)                                         //     or mid is first partition, value <= max
-                     || (mid == _final_partition() && range.first <= value))))                      //     or mid is last partition, value >= min
+                    ((mid > 0  && (value < range.second || value == range.second)
+                        && _max_in_partition(mid-1) <= value)                                       //     follows previous partition
+                     || (mid == 0 && (value < range.second || value == range.second))               //     or mid is first partition, value <= max
+                     || (mid == _final_partition()
+                        && (range.first < value || range.first == value)))))                        //     or mid is last partition, value >= min
             {
-                p_index = mid;
-                finished   = true;
+                p_index  = mid;
+                finished = true;
             }
             else if(range.second < value){
-                left  = mid + 1;
+                left = mid + 1;
             }
             else{
                 right = mid - 1;

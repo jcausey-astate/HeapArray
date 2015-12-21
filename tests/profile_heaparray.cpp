@@ -39,7 +39,7 @@ int main() {
     std::cout << std::setprecision(10);
     std::cout << "Setup Timing (build from static array):\n";
     std::cout << setw(15) << "Data-Size" << ", " << setw(15) << "#-Searches" << ", "<< setw(15) << "Vector"<< ", " << setw(15) << "HeapArray" << ", " << setw(15) << "Multiset\n";
-    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){   
+    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){
         begin = std::chrono::high_resolution_clock::now();
         std::vector<int> v{a1, a1+incremental};
         end   = std::chrono::high_resolution_clock::now();
@@ -47,7 +47,7 @@ int main() {
         sv_seconds  = sv_duration.count();
 
         begin = std::chrono::high_resolution_clock::now();
-        HeapArray h{a2, a2+incremental};
+        HeapArray<int> h{a2, a2+incremental};
         end   = std::chrono::high_resolution_clock::now();
         ha_duration = end-begin;
         ha_seconds  = ha_duration.count();
@@ -63,13 +63,13 @@ int main() {
     }
 
     std::cout << "\nSearch timing after static setup:\n";
-    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){   
+    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){
         SSIZE = 2 * TSIZE;
 
         std::vector<int>    v{a1, a1+incremental};
-        HeapArray           h{a2, a2+incremental};
+        HeapArray<int>           h{a2, a2+incremental};
         std::multiset<int>  s{a1, a1+incremental};
-        
+
         begin = std::chrono::high_resolution_clock::now();
         // Search for values that are in there:
         for(unsigned long i = 0; i < SSIZE; ++i){
@@ -114,8 +114,8 @@ int main() {
     }
 
     std::cout << "\nSetup Timing (build one value at a time, dynamically):\n";
-    
-    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){   
+
+    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){
         begin = std::chrono::high_resolution_clock::now();
         std::vector<int> v; // Build vector dynamically
         for(unsigned long j = 0; j < incremental; ++j){
@@ -126,7 +126,7 @@ int main() {
         sv_seconds  = sv_duration.count();
 
         begin = std::chrono::high_resolution_clock::now();
-        HeapArray h;        // Build heaparray dynamically
+        HeapArray<int> h;        // Build heaparray dynamically
         for(unsigned long j = 0; j < incremental; ++j){
             h.insert(a0[j]);
         }
@@ -148,14 +148,14 @@ int main() {
     }
 
     std::cout << "\nSearch timing, after dynamic setup:\n";
-    
-    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){  
-        SSIZE = 2 * TSIZE; 
+
+    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){
+        SSIZE = 2 * TSIZE;
         std::vector<int> v; // Build vector dynamically
         for(unsigned long j = 0; j < incremental; ++j){
             v.push_back(a0[j]);
         }
-        HeapArray h;        // Build heaparray dynamically
+        HeapArray<int> h;        // Build heaparray dynamically
         for(unsigned long j = 0; j < incremental; ++j){
             h.insert(a0[j]);
         }
@@ -163,7 +163,7 @@ int main() {
         for(unsigned long j = 0; j < incremental; ++j){
             s.insert(a0[j]);
         }
-        
+
         begin = std::chrono::high_resolution_clock::now();
         // Search for values that are in there:
         for(unsigned long i = 0; i < SSIZE; ++i){
@@ -208,17 +208,17 @@ int main() {
     }
 
     std::cout << "\nScenario timing (create unique N values):\n";
-    
-    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){  
+
+    for(size_t incremental = 100; incremental <= TSIZE; incremental += INCR){
         SSIZE = incremental;
         std::vector<int> v;   // Build vector dynamically
-        HeapArray h;          // Build heaparray dynamically
+        HeapArray<int> h;          // Build heaparray dynamically
         std::multiset<int> s; // Build multiset dynamically
-                
+
         begin = std::chrono::high_resolution_clock::now();
         for(unsigned long i = 0; i < SSIZE; ++i){
             int item;
-            do{    
+            do{
                 item = rand() % SSIZE * 2;                          // generate values
             }while(std::find(v.begin(), v.end(), item) != v.end()); // until one isn't already there
             v.push_back(item);                                      // then add it
@@ -230,7 +230,7 @@ int main() {
         begin = std::chrono::high_resolution_clock::now();
         for(unsigned long i = 0; i < SSIZE; ++i){
             int item;
-            do{    
+            do{
                 item = rand() % SSIZE * 2;                          // generate values
             }while(h.contains(item));                               // until one isn't already there
             h.insert(item);                                            // then add it
@@ -242,7 +242,7 @@ int main() {
         begin = std::chrono::high_resolution_clock::now();
         for(unsigned long i = 0; i < SSIZE; ++i){
             int item;
-            do{    
+            do{
                 item = rand() % SSIZE * 2;                          // generate values
             }while(s.find(item) != s.end());                        // until one isn't already there
             s.insert(item);                                         // then add it
