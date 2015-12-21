@@ -36,6 +36,7 @@
 #include <tuple>
 #include <cmath>
 #include "mmheap.h"
+    using namespace mmheap;
 
 const size_t MIN_HEAPARRAY_ALLOCATION = 4;  // TODO: Make this more realistic (based on real cache sizes, etc)
 
@@ -225,7 +226,7 @@ void HeapArray::insert(int value){
     bool done      = false;                                                                         // belongs in
     do{                                                                                             // then add it to that partition, and
         auto p_count = _count_in_partition(partition);                                              // "ripple" the maximum value (which
-        auto ripple  = mm_heap_ripple_add(value,                                                    // will be displaced if the partition is
+        auto ripple  = heap_insert_circular(value,                                                  // will be displaced if the partition is
                             a + _partition_start(partition),                                        // non-final and thus full)
                             p_count,                                                                // down to subsequent partitons,
                             _partition_size(partition));                                            // until the final partition is reached
@@ -252,22 +253,22 @@ bool HeapArray::remove(int value){
         auto partition = std::get<2>(find_res);
         if(partition == _final_partition()){                                                        // if the delete happens to be in the final
             size_t p_count = _count_in_partition(partition);                                        // partition, no "ripple" is necessary,
-            mm_heap_remove_at_index(                                                                // and the element can be trivially
+            heap_remove_at_index(                                                                // and the element can be trivially
                 std::get<3>(find_res),                                                              // removed
                 a + _partition_start(partition), p_count);
         }
         else{                                                                                       // non-trivial ripple delete, starting from the end:
             size_t p_count = _count_in_partition(_final_partition());
-            auto ripple    = mm_heap_remove_min(                                                    // ripple begins at right-most partition
+            auto ripple    = heap_remove_min(                                                    // ripple begins at right-most partition
                                 a + _partition_start(_final_partition()), p_count);
             for(auto p = _final_partition() - 1; p > partition; --p){
-                ripple = mm_heap_replace_at_index(                                                  // ripples through intermediate partititions
+                ripple = heap_replace_at_index(                                                  // ripples through intermediate partititions
                     ripple,
                     0,
                     a + _partition_start(p),
                     _count_in_partition(p) );
             }
-            mm_heap_replace_at_index(                                                               // and replaces the victim in the destination
+            heap_replace_at_index(                                                               // and replaces the victim in the destination
                 ripple,
                 std::get<3>(find_res),
                 a + _partition_start(partition),
@@ -292,7 +293,7 @@ int  HeapArray::min()const{
  * @return the maximum value in the container
  */
 int  HeapArray::max()const{
-    return mm_heap_max(a +                                                                          // max is maximum element in
+    return heap_max(a +                                                                          // max is maximum element in
         _partition_start(_final_partition()),                                                       // the final partition
         _count_in_partition(_final_partition()));                                                   // (mmheap can access it in O(1))
 }
@@ -330,7 +331,7 @@ bool HeapArray::contains(int value)const{
 void HeapArray::_init_heaps(){
     std::sort(a, a+count);
     for(size_t p = 1; p <= _final_partition(); ++p){                                                // first partition is trivially a heap.
-        make_mm_heap(a + _partition_start(p), _count_in_partition(p));                              // heapify the rest.
+        make_heap(a + _partition_start(p), _count_in_partition(p));                              // heapify the rest.
     }
 }
 
@@ -436,7 +437,7 @@ size_t HeapArray::_count_in_partition(size_t p)const{
 std::pair<int,int> HeapArray::_range_in_partition(size_t p)const{
     auto start_index = _partition_start(p);
     int  p_min       = a[start_index];
-    int  p_max       = mm_heap_max(a+start_index, _count_in_partition(p));
+    int  p_max       = heap_max(a+start_index, _count_in_partition(p));
     return std::pair<int,int>{p_min, p_max};
 }
 
@@ -445,7 +446,7 @@ std::pair<int,int> HeapArray::_range_in_partition(size_t p)const{
  */
 int HeapArray::_max_in_partition(size_t p)const{
     auto start_index = _partition_start(p);
-    return mm_heap_max(a+start_index, _count_in_partition(p));
+    return heap_max(a+start_index, _count_in_partition(p));
 }
 
 /*
